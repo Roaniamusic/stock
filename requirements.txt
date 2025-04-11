@@ -1,0 +1,8 @@
+Django==4.2.7
+django-crispy-forms==2.0
+crispy-bootstrap5==0.7
+Pillow==10.0.0
+django-filter==23.2
+django-import-export==3.2.0
+xhtml2pdf==0.2.11
+python-decouple==3.8

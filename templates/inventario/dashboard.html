@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Stockeando{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Dashboard</h1>
+
+<div class="row">
+    <!-- Tarjeta Total Productos -->
+    <div class="col-md-3 mb-4">
+        <div class="card dashboard-card shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="dashboard-icon me-3">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div>
+                    <h5 class="card-title mb-0">Total Productos</h5>
+                    <h2 class="mb-0">{{ total_productos }}</h2>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <a href="{% url 'producto_list' %}" class="text-decoration-none">Ver todos <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjeta Stock Bajo -->
+    <div class="col-md-3 mb-4">
+        <div class="card dashboard-card shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="dashboard-icon me-3 text-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <h5 class="card-title mb-0">Stock Bajo</h5>
+                    <h2 class="mb-0">{{ stock_bajo }}</h2>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <a href="{% url 'producto_list' %}?stock_bajo=True" class="text-decoration-none">Ver productos <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjeta Sin Stock -->
+    <div class="col-md-3 mb-4">
+        <div class="card dashboard-card shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="dashboard-icon me-3 text-danger">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div>
+                    <h5 class="card-title mb-0">Sin Stock</h5>
+                    <h2 class="mb-0">{{ sin_stock }}</h2>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <a href="#" class="text-decoration-none">Ver detalles <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjeta Valor Inventario -->
+    <div class="col-md-3 mb-4">
+        <div class="card dashboard-card shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="dashboard-icon me-3 text-success">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div>
+                    <h5 class="card-title mb-0">Valor Total</h5>
+                    <h2 class="mb-0">${{ valor_total_inventario|floatformat:0 }}</h2>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <a href="{% url 'reporte_stock' %}" class="text-decoration-none">Ver reporte <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fila de Acciones Rápidas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Acciones Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'producto_create' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus-circle me-1"></i> Nuevo Producto
+                    </a>
+                    <a href="{% url 'adquisicion_create' %}" class="btn btn-outline-success">
+                        <i class="fas fa-truck-loading me-1"></i> Nueva Adquisición
+                    </a>
+                    <a href="{% url 'entrega_create' %}" class="btn btn-outline-info">
+                        <i class="fas fa-hand-holding-heart me-1"></i> Nueva Entrega
+                    </a>
+                    <a href="{% url 'proveedor_create' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-building me-1"></i> Nuevo Proveedor
+                    </a>
+                    <a href="{% url 'categoria_create' %}" class="btn btn-outline-dark">
+                        <i class="fas fa-tags me-1"></i> Nueva Categoría
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Adquisiciones Recientes -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Adquisiciones Recientes</h5>
+                <a href="{% url 'adquisicion_list' %}" class="btn btn-sm btn-light">Ver todas</a>
+            </div>
+            <div class="card-body">
+                {% if adquisiciones_recientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Proveedor</th>
+                                    <th>Fecha</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for adquisicion in adquisiciones_recientes %}
+                                    <tr>
+                                        <td><a href="{% url 'adquisicion_detail' adquisicion.id %}">{{ adquisicion.id }}</a></td>
+                                        <td>{{ adquisicion.proveedor.nombre }}</td>
+                                        <td>{{ adquisicion.fecha|date:"d/m/Y" }}</td>
+                                        <td>${{ adquisicion.total|floatformat:0 }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center my-4">No hay adquisiciones recientes</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Entregas Recientes -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Entregas Recientes</h5>
+                <a href="{% url 'entrega_list' %}" class="btn btn-sm btn-light">Ver todas</a>
+            </div>
+            <div class="card-body">
+                {% if entregas_recientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Destinatario</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entrega in entregas_recientes %}
+                                    <tr>
+                                        <td><a href="{% url 'entrega_detail' entrega.id %}">{{ entrega.id }}</a></td>
+                                        <td>{{ entrega.destinatario }}</td>
+                                        <td>{{ entrega.fecha|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if entrega.estado == 'pendiente' %}
+                                                <span class="badge bg-warning">Pendiente</span>
+                                            {% elif entrega.estado == 'entregado' %}
+                                                <span class="badge bg-success">Entregado</span>
+                                            {% elif entrega.estado == 'cancelado' %}
+                                                <span class="badge bg-danger">Cancelado</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center my-4">No hay entregas recientes</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
