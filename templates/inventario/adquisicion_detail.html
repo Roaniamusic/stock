@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Detalle de Adquisición{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Detalle de Adquisición</h4>
+            </div>
+            <div class="card-body">
+                <h5>Información de la Adquisición</h5>
+                <p><strong>ID:</strong> {{ adquisicion.id }}</p>
+                <p><strong>Fecha:</strong> {{ adquisicion.fecha }}</p>
+                <p><strong>Proveedor:</strong> {{ adquisicion.proveedor }}</p>
+
+                <h5>Productos Adquiridos</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unitario</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detalle in detalles %}
+                        <tr>
+                            <td>{{ detalle.producto.nombre }}</td>
+                            <td>{{ detalle.cantidad }}</td>
+                            <td>{{ detalle.precio_unitario }}</td>
+                            <td>{{ detalle.total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p><strong>Total de la Adquisición:</strong> {{ adquisicion.total }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

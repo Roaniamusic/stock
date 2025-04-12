@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<!-- For debugging purposes only - remove in production -->
+<div class="container mt-2 d-none">
+    <div class="alert alert-info">
+        <h5>Debug Information:</h5>
+        <p>Form is valid: {{ form.is_valid|default:"Not submitted" }}</p>
+        <p>Formset is valid: {{ formset.is_valid|default:"Not submitted" }}</p>
+        <p>Formset errors: {{ formset.errors }}</p>
+        <p>Form errors: {{ form.errors }}</p>
+    </div>
+</div>
+
+<!-- Rest of your template -->
+{% endblock %}

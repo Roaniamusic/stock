@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Remito de Entrega #{{ entrega.id }}</title>
+    <style>
+        @page {
+            size: letter portrait;
+            margin: 2cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            color: #000;
+            line-height: 1.5;
+        }
+        h1 {
+            font-size: 18pt;
+            color: #333;
+            margin-bottom: 6pt;
+        }
+        h2 {
+            font-size: 14pt;
+            color: #333;
+            margin-bottom: 6pt;
+        }
+        h3 {
+            font-size: 12pt;
+            margin-top: 12pt;
+            margin-bottom: 6pt;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15pt;
+        }
+        table.bordered {
+            border: 1px solid #000;
+        }
+        table.bordered td, 
+        table.bordered th {
+            border: 1px solid #000;
+            padding: 4pt;
+        }
+        th {
+            background-color: #eee;
+            font-weight: bold;
+            text-align: left;
+        }
+        .header {
+            margin-bottom: 20pt;
+        }
+        .company-name {
+            font-weight: bold;
+            font-size: 14pt;
+        }
+        .align-right {
+            text-align: right;
+        }
+        .align-center {
+            text-align: center;
+        }
+        .footer {
+            margin-top: 30pt;
+            font-size: 8pt;
+            text-align: center;
+            color: #666;
+        }
+        .signature-line {
+            border-top: 1px solid #000;
+            width: 200pt;
+            margin: 0 auto;
+            margin-top: 40pt;
+            padding-top: 5pt;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Encabezado -->
+    <table class="header">
+        <tr>
+            <td width="60%">
+                <span class="company-name">{{ empresa.nombre }}</span><br>
+                {{ empresa.direccion }}<br>
+                Tel: {{ empresa.telefono }}<br>
+                Email: {{ empresa.email }}
+            </td>
+            <td width="40%" class="align-right">
+                <h1>REMITO DE ENTREGA</h1>
+                <b>Nº:</b> {{ entrega.id }}<br>
+                <b>Fecha:</b> {{ entrega.fecha|date:"d/m/Y H:i" }}
+            </td>
+        </tr>
+    </table>
+
+    <!-- Información de la entrega -->
+    <table class="bordered">
+        <tr>
+            <th width="20%">Destinatario:</th>
+            <td width="30%">{{ entrega.destinatario }}</td>
+            <th width="20%">Remito Nº:</th>
+            <td width="30%">{{ entrega.id }}</td>
+        </tr>
+        <tr>
+            <th>Departamento:</th>
+            <td>{{ entrega.departamento }}</td>
+            <th>Responsable:</th>
+            <td>{{ entrega.usuario.get_full_name|default:entrega.usuario.username }}</td>
+        </tr>
+        <tr>
+            <th>Estado:</th>
+            <td>
+                {% if entrega.estado == 'pendiente' %}
+                    Pendiente
+                {% elif entrega.estado == 'entregado' %}
+                    Entregado
+                {% elif entrega.estado == 'cancelado' %}
+                    Cancelado
+                {% endif %}
+            </td>
+            <th>Fecha Impresión:</th>
+            <td>{{ fecha_impresion|date:"d/m/Y H:i" }}</td>
+        </tr>
+    </table>
+
+    <!-- Productos entregados -->
+    <h3>Productos Entregados</h3>
+    <table class="bordered">
+        <thead>
+            <tr>
+                <th width="15%">Código</th>
+                <th width="35%">Producto</th>
+                <th width="10%">Cantidad</th>
+                <th width="20%">Precio U.</th>
+                <th width="20%">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.producto.codigo }}</td>
+                <td>{{ item.producto.nombre }}</td>
+                <td class="align-center">{{ item.cantidad }}</td>
+                <td class="align-right">${{ item.producto.precio_venta|floatformat:2 }}</td>
+                <td class="align-right">${{ item.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" class="align-right"><strong>TOTAL:</strong></td>
+                <td class="align-right"><strong>${{ entrega.total|floatformat:2 }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Observaciones -->
+    <h3>Observaciones:</h3>
+    <p>{{ entrega.observaciones|default:"Sin observaciones" }}</p>
+
+    <!-- Firmas -->
+    <table>
+        <tr>
+            <td width="45%" class="align-center">
+                <div class="signature-line">
+                    Firma Responsable Entrega
+                </div>
+            </td>
+            <td width="10%"></td>
+            <td width="45%" class="align-center">
+                <div class="signature-line">
+                    Firma Receptor
+                </div>
+            </td>
+        </tr>
+    </table>
+    
+    <!-- Nota de certificación -->
+    <p style="font-style: italic; margin-top: 20pt;">
+        Este documento certifica la entrega de los productos detallados anteriormente.
+    </p>
+
+    <!-- Pie de página -->
+    <div class="footer">
+        Documento generado el {{ fecha_impresion|date:"d/m/Y H:i" }} por {{ usuario.get_full_name|default:usuario.username }}
+    </div>
+</body>
+</html>
+</qodoArtifact>
+
+## 4. Actualizar la plantilla de detalle de entrega para incluir el botón de impresión

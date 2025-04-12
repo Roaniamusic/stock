@@ -28,12 +28,17 @@ urlpatterns = [
     path('adquisiciones/', views.AdquisicionListView.as_view(), name='adquisicion_list'),
     path('adquisiciones/<int:pk>/', views.AdquisicionDetailView.as_view(), name='adquisicion_detail'),
     path('adquisiciones/nueva/', views.adquisicion_create, name='adquisicion_create'),
+    path('adquisiciones/editar/<int:pk>/', views.AdquisicionUpdateView.as_view(), name='adquisicion_edit'),
+    path('adquisiciones/eliminar/<int:pk>/', views.AdquisicionDeleteView.as_view(), name='adquisicion_delete'),
     
     # Entregas
     path('entregas/', views.EntregaListView.as_view(), name='entrega_list'),
     path('entregas/<int:pk>/', views.EntregaDetailView.as_view(), name='entrega_detail'),
     path('entregas/nueva/', views.entrega_create, name='entrega_create'),
+    path('entregas/editar/<int:pk>/', views.EntregaUpdateView.as_view(), name='entrega_edit'),
+    path('entregas/eliminar/<int:pk>/', views.EntregaDeleteView.as_view(), name='entrega_delete'),
     path('entregas/<int:pk>/estado/<str:estado>/', views.entrega_cambiar_estado, name='entrega_cambiar_estado'),
+    path('entregas/<int:pk>/remito/', views.generar_remito_pdf, name='entrega_remito'),
     
     # Reportes
     path('reportes/movimientos/', views.reporte_movimientos, name='reporte_movimientos'),

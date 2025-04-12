@@ -95,6 +95,11 @@ class Adquisicion(models.Model):
         total = sum(item.subtotal for item in self.items.all())
         self.total = total
         self.save()
+    
+    @property
+    def total_calculado(self):
+        """Calcula el total de toda la adquisición"""
+        return sum(item.subtotal for item in self.items.all())
 
 class DetalleAdquisicion(models.Model):
     adquisicion = models.ForeignKey(Adquisicion, on_delete=models.CASCADE, related_name='items')
@@ -111,6 +116,7 @@ class DetalleAdquisicion(models.Model):
     
     @property
     def subtotal(self):
+        """Calcula el subtotal para este ítem de adquisición"""
         return self.cantidad * self.precio_unitario
     
     def save(self, *args, **kwargs):
@@ -143,6 +149,11 @@ class Entrega(models.Model):
     
     def __str__(self):
         return f"Entrega #{self.id} - {self.destinatario}"
+    
+    @property
+    def total(self):
+        """Calcula el total de toda la entrega"""
+        return sum(item.subtotal for item in self.items.all())
 
 class DetalleEntrega(models.Model):
     entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name='items')
@@ -155,6 +166,11 @@ class DetalleEntrega(models.Model):
     
     def __str__(self):
         return f"{self.cantidad} x {self.producto.nombre}"
+    
+    @property
+    def subtotal(self):
+        """Calcula el subtotal para este ítem de entrega"""
+        return self.cantidad * self.producto.precio_venta
     
     def save(self, *args, **kwargs):
         # Actualizar stock del producto al guardar

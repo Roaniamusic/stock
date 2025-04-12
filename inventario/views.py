@@ -1,4 +1,6 @@
 import datetime
+import os
+from io import BytesIO
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -8,6 +10,9 @@ from django.utils import timezone
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
+from django.template.loader import get_template, render_to_string
+from django.conf import settings
+from xhtml2pdf import pisa
 
 from .models import (
     Categoria, Proveedor, Producto, 
@@ -156,9 +161,14 @@ def producto_list(request):
         if form.cleaned_data['stock_bajo']:
             productos = productos.filter(stock_actual__lt=F('stock_minimo'))
     
+    # Agregar filtro para productos sin stock (stock_actual = 0)
+    if request.GET.get('stock_cero') == 'True':
+        productos = productos.filter(stock_actual=0)
+    
     return render(request, 'inventario/producto_list.html', {
         'productos': productos,
-        'form': form
+        'form': form,
+        'stock_cero': request.GET.get('stock_cero') == 'True'
     })
 
 class ProductoDetailView(LoginRequiredMixin, DetailView):
@@ -273,6 +283,74 @@ class AdquisicionDetailView(LoginRequiredMixin, DetailView):
     model = Adquisicion
     template_name = 'inventario/adquisicion_detail.html'
 
+class AdquisicionUpdateView(LoginRequiredMixin, UpdateView):
+    model = Adquisicion
+    form_class = AdquisicionForm
+    template_name = 'inventario/adquisicion_form.html'
+    success_url = reverse_lazy('adquisicion_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = DetalleAdquisicionFormset(self.request.POST, instance=self.object)
+        else:
+            context['formset'] = DetalleAdquisicionFormset(instance=self.object)
+        context['title'] = 'Editar Adquisición'
+        context['button_text'] = 'Actualizar'
+        return context
+    
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        if formset.is_valid():
+            self.object = form.save(commit=False)
+            self.object.usuario = self.request.user
+            self.object.save()
+            formset.instance = self.object
+            formset.save()
+            messages.success(self.request, 'Adquisición actualizada correctamente.')
+            return redirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
+
+class AdquisicionDeleteView(LoginRequiredMixin, DeleteView):
+    model = Adquisicion
+    template_name = 'inventario/adquisicion_confirm_delete.html'
+    success_url = reverse_lazy('adquisicion_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Eliminar Adquisición'
+        return context
+    
+    def delete(self, request, *args, **kwargs):
+        adquisicion = self.get_object()
+        
+        # Revertir los cambios de stock para cada ítem
+        for item in adquisicion.items.all():
+            # Guardar stock anterior
+            stock_anterior = item.producto.stock_actual
+            
+            # Restar del stock
+            item.producto.stock_actual -= item.cantidad
+            if item.producto.stock_actual < 0:
+                item.producto.stock_actual = 0
+            item.producto.save()
+            
+            # Registrar movimiento
+            Movimiento.objects.create(
+                producto=item.producto,
+                tipo='ajuste',
+                cantidad=-item.cantidad,
+                stock_anterior=stock_anterior,
+                stock_nuevo=item.producto.stock_actual,
+                referencia=f'Eliminación adquisición #{adquisicion.id}',
+                usuario=request.user
+            )
+        
+        messages.success(request, 'Adquisición eliminada correctamente.')
+        return super().delete(request, *args, **kwargs)
+
 @login_required
 def adquisicion_create(request):
     if request.method == 'POST':
@@ -322,6 +400,154 @@ class EntregaListView(LoginRequiredMixin, ListView):
 class EntregaDetailView(LoginRequiredMixin, DetailView):
     model = Entrega
     template_name = 'inventario/entrega_detail.html'
+
+class EntregaUpdateView(LoginRequiredMixin, UpdateView):
+    model = Entrega
+    form_class = EntregaForm
+    template_name = 'inventario/entrega_form.html'
+    success_url = reverse_lazy('entrega_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = DetalleEntregaFormset(self.request.POST, instance=self.object)
+        else:
+            context['formset'] = DetalleEntregaFormset(instance=self.object)
+        context['title'] = 'Editar Entrega'
+        context['button_text'] = 'Actualizar'
+        return context
+    
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        if formset.is_valid():
+            self.object = form.save(commit=False)
+            self.object.usuario = self.request.user
+            self.object.save()
+            formset.instance = self.object
+            formset.save()
+            messages.success(self.request, 'Entrega actualizada correctamente.')
+            return redirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
+
+class EntregaDeleteView(LoginRequiredMixin, DeleteView):
+    model = Entrega
+    template_name = 'inventario/entrega_confirm_delete.html'
+    success_url = reverse_lazy('entrega_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Eliminar Entrega'
+        return context
+    
+    def delete(self, request, *args, **kwargs):
+        entrega = self.get_object()
+        
+        # Solo permitir eliminar si la entrega no está entregada
+        if entrega.estado == 'entregado':
+            messages.error(request, 'No se puede eliminar una entrega que ya ha sido completada.')
+            return redirect('entrega_detail', pk=entrega.pk)
+        
+        # Si está pendiente o cancelada, podemos eliminarla
+        # Pero si está pendiente, hay que devolver los productos al inventario
+        if entrega.estado == 'pendiente':
+            # Revertir los cambios de stock para cada ítem
+            for item in entrega.items.all():
+                # Guardar stock anterior
+                stock_anterior = item.producto.stock_actual
+                
+                # Devolver al stock
+                item.producto.stock_actual += item.cantidad
+                item.producto.save()
+                
+                # Registrar movimiento
+                Movimiento.objects.create(
+                    producto=item.producto,
+                    tipo='ajuste',
+                    cantidad=item.cantidad,
+                    stock_anterior=stock_anterior,
+                    stock_nuevo=item.producto.stock_actual,
+                    referencia=f'Eliminación entrega #{entrega.id}',
+                    usuario=request.user
+                )
+        
+        messages.success(request, 'Entrega eliminada correctamente.')
+        return super().delete(request, *args, **kwargs)
+
+class EntregaUpdateView(LoginRequiredMixin, UpdateView):
+    model = Entrega
+    form_class = EntregaForm
+    template_name = 'inventario/entrega_form.html'
+    success_url = reverse_lazy('entrega_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = DetalleEntregaFormset(self.request.POST, instance=self.object)
+        else:
+            context['formset'] = DetalleEntregaFormset(instance=self.object)
+        context['title'] = 'Editar Entrega'
+        context['button_text'] = 'Actualizar'
+        return context
+    
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        if formset.is_valid():
+            self.object = form.save(commit=False)
+            self.object.usuario = self.request.user
+            self.object.save()
+            formset.instance = self.object
+            formset.save()
+            messages.success(self.request, 'Entrega actualizada correctamente.')
+            return redirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
+
+class EntregaDeleteView(LoginRequiredMixin, DeleteView):
+    model = Entrega
+    template_name = 'inventario/entrega_confirm_delete.html'
+    success_url = reverse_lazy('entrega_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Eliminar Entrega'
+        return context
+    
+    def delete(self, request, *args, **kwargs):
+        entrega = self.get_object()
+        
+        # Solo permitir eliminar si la entrega no está entregada
+        if entrega.estado == 'entregado':
+            messages.error(request, 'No se puede eliminar una entrega que ya ha sido completada.')
+            return redirect('entrega_detail', pk=entrega.pk)
+        
+        # Si está pendiente o cancelada, podemos eliminarla
+        # Pero si está pendiente, hay que devolver los productos al inventario
+        if entrega.estado == 'pendiente':
+            # Revertir los cambios de stock para cada ítem
+            for item in entrega.items.all():
+                # Guardar stock anterior
+                stock_anterior = item.producto.stock_actual
+                
+                # Devolver al stock
+                item.producto.stock_actual += item.cantidad
+                item.producto.save()
+                
+                # Registrar movimiento
+                Movimiento.objects.create(
+                    producto=item.producto,
+                    tipo='ajuste',
+                    cantidad=item.cantidad,
+                    stock_anterior=stock_anterior,
+                    stock_nuevo=item.producto.stock_actual,
+                    referencia=f'Eliminación entrega #{entrega.id}',
+                    usuario=request.user
+                )
+        
+        messages.success(request, 'Entrega eliminada correctamente.')
+        return super().delete(request, *args, **kwargs)
 
 @login_required
 def entrega_create(request):
@@ -439,6 +665,56 @@ def entrega_cambiar_estado(request, pk, estado):
     
     return redirect('entrega_detail', pk=entrega.pk)
 
+@login_required
+def generar_remito_pdf(request, pk):
+    """
+    Genera un PDF con el remito de la entrega seleccionada usando xhtml2pdf.
+    """
+    # Obtener la entrega
+    entrega = get_object_or_404(Entrega, pk=pk)
+    
+    # Obtener el template HTML
+    template = get_template('inventario/remito_pdf.html')
+    
+    # Preparar el contexto para el template
+    context = {
+        'entrega': entrega,
+        'items': entrega.items.all(),
+        'fecha_impresion': timezone.now(),
+        'usuario': request.user,
+        'empresa': {
+            'nombre': 'Sistema de Inventario',
+            'direccion': 'Dirección de la Empresa',
+            'telefono': 'Teléfono de contacto',
+            'email': 'email@empresa.com',
+            'logo': os.path.join(settings.STATIC_URL, 'img/logo.png') if hasattr(settings, 'STATIC_URL') else None,
+        }
+    }
+    
+    # Renderizar HTML
+    html = template.render(context)
+    
+    # Crear respuesta HTTP
+    response = HttpResponse(content_type='application/pdf')
+    
+    # Generar el nombre del archivo
+    filename = f"remito_entrega_{entrega.id}.pdf"
+    
+    # Establecer el header para descargar el archivo
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    # Crear el PDF desde HTML
+    pisa_status = pisa.CreatePDF(
+        html,                   # HTML a convertir
+        dest=response,          # Destino del PDF
+    )
+    
+    # Revisar si hubo errores
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF: ' + str(pisa_status.err), content_type='text/plain')
+    
+    return response
+
 # Vistas de Reportes
 @login_required
 def reporte_movimientos(request):
@@ -450,7 +726,7 @@ def reporte_movimientos(request):
         fecha_fin = form.cleaned_data['fecha_fin']
         
         # Ajustar fecha_fin para incluir todo el día
-        fecha_fin = datetime.combine(fecha_fin, datetime.time.max)
+        fecha_fin = datetime.datetime.combine(fecha_fin, datetime.time.max)
         
         movimientos = Movimiento.objects.filter(
             fecha__range=(fecha_inicio, fecha_fin)

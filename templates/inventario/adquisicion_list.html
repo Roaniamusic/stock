@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+  {% load crispy_forms_tags %}
+
+  {% block title %}Lista de Adquisiciones{% endblock %}
+
+  {% block content %}
+  <div class="row justify-content-center">
+      <div class="col-md-10">
+          <div class="card shadow-sm">
+              <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                  <h4 class="mb-0">Lista de Adquisiciones</h4>
+                  <a href="{% url 'adquisicion_create' %}" class="btn btn-success">
+                      <i class="fas fa-plus-circle mr-1"></i> Nueva Adquisición
+                  </a>
+              </div>
+              <div class="card-body">
+                  <table class="table table-striped">
+                      <thead>
+                          <tr>
+                              <th>ID</th>
+                              <th>Nombre</th>
+                              <th>Fecha</th>
+                              <th>Acciones</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {% for adquisicion in adquisiciones %}
+                          <tr>
+                              <td>{{ adquisicion.id }}</td>
+                              <td>{{ adquisicion.nombre }}</td>
+                              <td>{{ adquisicion.fecha }}</td>
+                              <td>
+                                  <a href="{% url 'adquisicion_detail' adquisicion.id %}" class="btn btn-info btn-sm">Ver</a>
+                                  <a href="{% url 'adquisicion_edit' adquisicion.id %}" class="btn btn-warning btn-sm">Editar</a>
+                                  <a href="{% url 'adquisicion_delete' adquisicion.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+                              </td>
+                          </tr>
+                          {% endfor %}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+  </div>
+  {% endblock %}

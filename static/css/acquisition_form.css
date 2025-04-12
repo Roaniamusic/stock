@@ -1,0 +1,50 @@
+/* Acquisition form specific styles */
+.form-row td {
+    vertical-align: middle;
+}
+
+/* Make sure the subtotal and total are right-aligned */
+.subtotal-0, .subtotal-1, .subtotal-2, .subtotal-3, .subtotal-4, 
+.subtotal-5, .subtotal-6, .subtotal-7, .subtotal-8, .subtotal-9,
+#total-amount {
+    text-align: right;
+    font-weight: 500;
+}
+
+/* Highlight the total row */
+tfoot tr {
+    background-color: #f8f9fa;
+}
+
+/* Improve the appearance of Select2 dropdowns */
+.select2-container--bootstrap4 .select2-selection {
+    height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+/* Add validation styles for numeric inputs */
+input[type="number"] {
+    text-align: right;
+}
+
+input[type="number"]:invalid {
+    border-color: #dc3545;
+}
+
+/* Improve button spacing */
+.delete-form-button {
+    margin: 0 auto;
+    display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+    }
+}

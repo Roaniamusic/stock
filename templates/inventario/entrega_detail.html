@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle de Entrega #{{ entrega.id }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Detalle de Entrega #{{ entrega.id }}</h4>
+                <div>
+                    <a href="{% url 'entrega_remito' entrega.id %}" class="btn btn-warning me-2" target="_blank">
+                        <i class="fas fa-print"></i> Imprimir Remito
+                    </a>
+                    <a href="{% url 'entrega_list' %}" class="btn btn-light">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Información General</h5>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th style="width: 150px;">Destinatario:</th>
+                                <td>{{ entrega.destinatario }}</td>
+                            </tr>
+                            <tr>
+                                <th>Departamento:</th>
+                                <td>{{ entrega.departamento }}</td>
+                            </tr>
+                            <tr>
+                                <th>Fecha:</th>
+                                <td>{{ entrega.fecha }}</td>
+                            </tr>
+                            <tr>
+                                <th>Estado:</th>
+                                <td>
+                                    {% if entrega.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% elif entrega.estado == 'entregado' %}
+                                        <span class="badge bg-success">Entregado</span>
+                                    {% elif entrega.estado == 'cancelado' %}
+                                        <span class="badge bg-danger">Cancelado</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Usuario:</th>
+                                <td>{{ entrega.usuario.get_full_name|default:entrega.usuario.username }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Observaciones</h5>
+                        <div class="p-3 bg-light rounded">
+                            {{ entrega.observaciones|linebreaks|default:"Sin observaciones" }}
+                        </div>
+                        
+                        {% if entrega.estado != 'cancelado' %}
+                            <div class="mt-4">
+                                <h5 class="mb-3">Cambiar Estado</h5>
+                                <div class="btn-group">
+                                    {% if entrega.estado != 'pendiente' %}
+                                        <a href="{% url 'entrega_cambiar_estado' entrega.id 'pendiente' %}" class="btn btn-warning">
+                                            Marcar como Pendiente
+                                        </a>
+                                    {% endif %}
+                                    
+                                    {% if entrega.estado != 'entregado' %}
+                                        <a href="{% url 'entrega_cambiar_estado' entrega.id 'entregado' %}" class="btn btn-success">
+                                            Marcar como Entregado
+                                        </a>
+                                    {% endif %}
+                                    
+                                    {% if entrega.estado != 'cancelado' %}
+                                        <a href="{% url 'entrega_cambiar_estado' entrega.id 'cancelado' %}" class="btn btn-danger" 
+                                           onclick="return confirm('¿Estás seguro? Esta acción devolverá los productos al inventario.')">
+                                            Cancelar Entrega
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <h5>Productos Entregados</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Código</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unidad</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in entrega.items.all %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'producto_detail' item.producto.id %}">
+                                            {{ item.producto.nombre }}
+                                        </a>
+                                    </td>
+                                    <td>{{ item.producto.codigo }}</td>
+                                    <td>{{ item.cantidad }}</td>
+                                    <td>${{ item.producto.precio_venta|floatformat:2 }}</td>
+                                    <td>${{ item.subtotal|floatformat:2 }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="4" class="text-end">Total:</th>
+                                <th>${{ entrega.total|floatformat:2 }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
