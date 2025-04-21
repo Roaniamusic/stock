@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Ajuste de Stock - {{ producto.nombre }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Ajuste de Stock</h4>
+            </div>
+            <div class="card-body">
+                <h5 class="mb-3">Producto: <span class="fw-bold">{{ producto.nombre }}</span></h5>
+                <p><strong>Código:</strong> {{ producto.codigo }}</p>
+                <p><strong>Stock actual:</strong> <span class="fw-bold">{{ producto.stock_actual }}</span></p>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Guardar ajuste</button>
+                        <a href="{% url 'producto_detail' producto.id %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

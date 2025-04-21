@@ -27,16 +27,90 @@
                     {% csrf_token %}
                     {{ form|crispy }}
                     {{ formset.management_form }}
-                    {% for form in formset %}
-                        {{ form|crispy }}
-                    {% endfor %}
+                    <div id="formset-container">
+                        {% for form in formset %}
+                            <div class="form-row">
+                                {{ form|crispy }}
+                                <button type="button" class="btn btn-danger btn-sm delete-form-button mt-2">Eliminar</button>
+                            </div>
+                        {% endfor %}
+                    </div>
                     <div class="mt-3">
                         <button type="submit" class="btn btn-primary">Guardar</button>
                         <a href="{% url 'entrega_list' %}" class="btn btn-secondary">Cancelar</a>
                     </div>
                 </form>
+                <button type="button" id="add-form-button" class="btn btn-sm btn-primary mt-3">
+                    <i class="fas fa-plus"></i> Agregar Producto
+                </button>
+                <div id="empty-form" class="d-none">
+                    <div class="form-row">
+                        {{ formset.empty_form|crispy }}
+                        <button type="button" class="btn btn-danger btn-sm delete-form-button mt-2">Eliminar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addFormButton = document.getElementById('add-form-button');
+        const formContainer = document.querySelector('form');
+        const formsetContainer = document.getElementById('formset-container');
+        const emptyFormTemplate = document.getElementById('empty-form').querySelector('.form-row').innerHTML;
+        let totalForms = document.querySelector('[name$="TOTAL_FORMS"]');
+        const formPrefix = 'form';
+
+        addFormButton.addEventListener('click', function () {
+            const newFormIndex = totalForms.value;
+            const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, newFormIndex).replace(/-empty-/g, `-${newFormIndex}-`);
+
+            const newFormDiv = document.createElement('div');
+            newFormDiv.classList.add('form-row');
+            newFormDiv.innerHTML = newFormHtml;
+
+            formsetContainer.appendChild(newFormDiv);
+            totalForms.value = parseInt(totalForms.value) + 1;
+
+            if (typeof $.fn.select2 !== 'undefined') {
+                $(newFormDiv).find('select').each(function() {
+                    $(this).select2({
+                        theme: 'bootstrap4',
+                        width: '100%'
+                    });
+                });
+            }
+        });
+
+        formContainer.addEventListener('click', function (event) {
+            if (event.target.classList.contains('delete-form-button')) {
+                event.preventDefault();
+                const formRow = event.target.closest('.form-row');
+                if (formRow) {
+                    const deleteInput = formRow.querySelector('[name$="-DELETE"]');
+                    if (deleteInput) {
+                        deleteInput.checked = true;
+                        formRow.style.display = 'none';
+                        const totalFormsInput = document.querySelector('[name$="TOTAL_FORMS"]');
+                        totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+                    } else {
+                        // Si no hay un campo DELETE (para formularios vacíos recién agregados)
+                        formRow.remove();
+                        const totalFormsInput = document.querySelector('[name$="TOTAL_FORMS"]');
+                        totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+                    }
+                }
+            }
+        });
+
+        if (typeof $.fn.select2 !== 'undefined') {
+            $('select').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+        }
+    });
+</script>
 {% endblock %}
